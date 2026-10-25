@@ -39,6 +39,19 @@ public class TelemetryService {
 
     @Transactional
     public Telemetry recordTelemetry(Long droneId, TelemetryRequest request) {
+        return saveTelemetry(droneId, request, "DEVICE");
+    }
+
+    public Telemetry recordMissionTelemetry(
+            Long droneId,
+            TelemetryRequest request) {
+        return saveTelemetry(droneId, request, "SIMULATED_MISSION");
+    }
+
+    private Telemetry saveTelemetry(
+            Long droneId,
+            TelemetryRequest request,
+            String source) {
         if (!droneRepository.existsById(droneId)) {
             throw new ResourceNotFoundException(
                     "Drone not found with id: " + droneId
@@ -51,6 +64,7 @@ public class TelemetryService {
         telemetry.setLatitude(request.getLatitude());
         telemetry.setLongitude(request.getLongitude());
         telemetry.setAltitude(request.getAltitude());
+        telemetry.setSource(source);
         return telemetryRepository.save(telemetry);
     }
 }

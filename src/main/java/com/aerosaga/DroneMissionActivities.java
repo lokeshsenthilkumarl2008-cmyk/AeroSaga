@@ -13,6 +13,9 @@ public interface DroneMissionActivities {
     String travel(String missionId);
 
     @ActivityMethod
+    String completeDelivery(String missionId);
+
+    @ActivityMethod
     String returnHome(String missionId);
 
     @ActivityMethod

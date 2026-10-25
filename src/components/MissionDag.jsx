@@ -7,25 +7,32 @@ const ICON = {
 }
 
 const STEPS = [
-  ['preflight', 'Pre-flight check'],
-  ['takeoff', 'Takeoff'],
-  ['navigate', 'Navigate to destination'],
-  ['delivery', 'Complete delivery'],
-  ['return', 'Return to base'],
-  ['land', 'Land'],
+  ['TAKEOFF', 'Takeoff'],
+  ['TRAVEL', 'Travel to destination'],
+  ['DELIVERY', 'Complete delivery'],
+  ['RETURN_HOME', 'Return to base'],
 ]
 
-function statusForStep(missionStatus, index) {
-  if (missionStatus === 'COMPLETED') return 'completed'
-  if (missionStatus === 'FAILED') {
-    if (index < 2) return 'completed'
-    if (index === 2) return 'failed'
-    return 'skipped'
+function statusForStep(stepType, signals, missionStatus) {
+  const signal = signals
+    .filter((item) => item.signalType?.toUpperCase() === stepType)
+    .at(-1)
+  const signalStatus = signal?.signalStatus?.toUpperCase()
+
+  if (signalStatus === 'COMPLETED') return 'completed'
+  if (signalStatus === 'IN_PROGRESS' || signalStatus === 'RETRYING') {
+    if (
+      missionStatus === 'FAILED' &&
+      signals.some((item) =>
+        item.signalType?.toUpperCase() === 'MISSION' &&
+        item.signalStatus?.toUpperCase() === 'FAILED',
+      )
+    ) {
+      return 'failed'
+    }
+    return 'active'
   }
-  if (missionStatus === 'RUNNING') {
-    if (index < 2) return 'completed'
-    if (index === 2) return 'active'
-  }
+  if (signalStatus === 'FAILED') return 'failed'
   return 'pending'
 }
 
@@ -38,8 +45,12 @@ function Node({ label, status }) {
   )
 }
 
-export default function MissionDag({ mission, onExecute, busy }) {
+export default function MissionDag({ mission, signals = [], onExecute, busy }) {
   const status = mission?.status?.toUpperCase() || 'NO MISSION'
+  const missionSignals = signals
+    .filter((signal) => String(signal.missionId) === String(mission?.id))
+    .sort((a, b) => Number(a.id) - Number(b.id))
+  const latestSignal = missionSignals.at(-1)
 
   return (
     <section>
@@ -56,11 +67,17 @@ export default function MissionDag({ mission, onExecute, busy }) {
           <div className="dag">
             {STEPS.map(([id, label], index) => (
               <div key={id}>
-                <Node label={label} status={statusForStep(status, index)} />
+                <Node label={label} status={statusForStep(id, missionSignals, status)} />
                 {index < STEPS.length - 1 && <div className="dag-link" />}
               </div>
             ))}
           </div>
+          {latestSignal && (
+            <p className="tiny" aria-live="polite">
+              Latest event: {latestSignal.signalType} · {latestSignal.signalStatus}
+              {latestSignal.message ? ` · ${latestSignal.message}` : ''}
+            </p>
+          )}
 
           {status === 'PENDING' && (
             <button className="inject" onClick={() => onExecute(mission.id)} disabled={busy}>

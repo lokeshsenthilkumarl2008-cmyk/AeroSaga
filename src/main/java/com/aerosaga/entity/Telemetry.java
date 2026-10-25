@@ -22,6 +22,7 @@ public class Telemetry {
     private Double latitude;
     private Double longitude;
     private Double altitude;
+    private String source;
     private LocalDateTime recordedAt;
 
     @PrePersist
@@ -73,6 +74,14 @@ public class Telemetry {
 
     public void setAltitude(Double altitude) {
         this.altitude = altitude;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 
     public LocalDateTime getRecordedAt() {

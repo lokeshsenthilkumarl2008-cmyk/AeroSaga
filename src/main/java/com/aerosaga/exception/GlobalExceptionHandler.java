@@ -52,4 +52,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(error);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
+        Map<String, String> error = Map.of(
+                "error", "Bad Request",
+                "message", ex.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(error);
+    }
 }

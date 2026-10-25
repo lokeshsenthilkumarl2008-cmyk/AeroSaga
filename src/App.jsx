@@ -10,7 +10,6 @@ import {
   executeMission,
   getBackendOverview,
 } from './services/backendClient'
-import { TICK_MS } from './services/telemetryClient'
 import './App.css'
 
 const NAV = [
@@ -25,9 +24,12 @@ const NAV = [
 const coord = (lat, lon) =>
   `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`
 
+const ORBIT_UPDATE_MS = 1000
+
 const displayStatus = (status) => {
   switch (status?.toUpperCase()) {
     case 'AVAILABLE': return 'idle'
+    case 'IN_FLIGHT':
     case 'IN_PROGRESS':
     case 'RUNNING': return 'active'
     case 'OFFLINE': return 'offline'
@@ -104,7 +106,7 @@ export default function App() {
     const startedAt = performance.now()
     const timer = setInterval(
       () => setOrbitTime((performance.now() - startedAt) / 1000),
-      TICK_MS,
+      ORBIT_UPDATE_MS,
     )
     return () => clearInterval(timer)
   }, [])
@@ -148,6 +150,9 @@ export default function App() {
           Math.cos((location.lat * Math.PI) / 180)
         : sample.lon
       const isOffline = drone.status?.toUpperCase() === 'OFFLINE'
+      const useTelemetryPosition = telemetry && (
+        telemetry.source === 'DEVICE' || isInFlight
+      )
       const mission = backend.missions.find(
         (item) => String(item.drone?.id) === String(drone.id) &&
           ['PENDING', 'RUNNING', 'IN_PROGRESS'].includes(item.status?.toUpperCase()),
@@ -161,19 +166,21 @@ export default function App() {
         model: drone.model,
         location: drone.location,
         status: displayStatus(drone.status),
-        lat: isInFlight
-          ? telemetry?.latitude ?? orbitLatitude
-          : isOffline ? location?.lat ?? sample.lat : orbitLatitude,
-        lon: isInFlight
-          ? telemetry?.longitude ?? orbitLongitude
-          : isOffline ? location?.lon ?? sample.lon : orbitLongitude,
+        lat: isOffline
+          ? location?.lat ?? sample.lat
+          : useTelemetryPosition ? telemetry.latitude : orbitLatitude,
+        lon: isOffline
+          ? location?.lon ?? sample.lon
+          : useTelemetryPosition ? telemetry.longitude : orbitLongitude,
         alt: telemetry?.altitude ?? 100 + ring * 35,
         battery: telemetry?.batteryLevel ?? sample.battery,
         speed: sample.speed,
         heading: (angle * 180 / Math.PI + 360) % 360,
         mission: mission?.missionName || 'No active mission',
         missionId: mission?.id,
-        telemetryIsLive: Boolean(telemetry),
+        hasTelemetry: Boolean(telemetry),
+        telemetrySource: telemetry?.source,
+        telemetryRecordedAt: telemetry?.recordedAt,
         dest: location ? [location.lat, location.lon] : sample.dest,
       }
     })
@@ -234,7 +241,7 @@ export default function App() {
         <div className="brand">
           <Plane size={24} />
           <div>
-            <div className="brand-name">Arrow Saga</div>
+            <div className="brand-name">Aero Saga</div>
             <div className="brand-sub">Drone Fleet Control</div>
           </div>
         </div>
@@ -369,13 +376,17 @@ export default function App() {
               value={missionForm.missionName}
               onChange={(event) => setMissionForm({ ...missionForm, missionName: event.target.value })}
             />
-            <input
+            <select
               aria-label="Destination"
-              placeholder="Destination"
               required
               value={missionForm.destination}
               onChange={(event) => setMissionForm({ ...missionForm, destination: event.target.value })}
-            />
+            >
+              <option value="">Choose destination city</option>
+              {CITIES.map((city) => (
+                <option key={city.name} value={city.name}>{city.name}</option>
+              ))}
+            </select>
             <button className="inject" disabled={busy || !availableDrones.length || backend.status !== 'online'}>
               Create mission
             </button>
@@ -391,7 +402,11 @@ export default function App() {
                 <span className={`badge ${selected.status}`}>{selected.status.toUpperCase()}</span>
               </div>
               <div className="drone-name">{selected.name}</div>
-              <div className="tiny">{selected.model} · {selected.telemetryIsLive ? 'LIVE TELEMETRY' : 'SIMULATED POSITION'}</div>
+              <div className="tiny">
+                {selected.model} · {selected.hasTelemetry
+                  ? `${selected.telemetrySource === 'DEVICE' ? 'DEVICE' : selected.telemetrySource === 'SIMULATED_MISSION' ? 'SIMULATED MISSION' : 'RECORDED'} TELEMETRY${selected.telemetryRecordedAt ? ` · ${new Date(selected.telemetryRecordedAt).toLocaleTimeString()}` : ''}`
+                  : 'NO TELEMETRY · ORBIT VISUALIZATION IS SIMULATED'}
+              </div>
               <div className="grid2">
                 <div><span>Location</span><b>{selected.location || 'Unknown'}</b></div>
                 <div><span>Altitude</span><b>{selected.alt} m</b></div>
@@ -408,6 +423,7 @@ export default function App() {
 
             <MissionDag
               mission={selectedMission}
+              signals={backend.workflowSignals}
               busy={busy}
               onExecute={(missionId) => performAction(() => executeMission(missionId))}
             />

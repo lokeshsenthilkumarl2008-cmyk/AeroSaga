@@ -45,7 +45,9 @@ class MissionWorkflowIntegrationTest {
                         .content("""
                                 {"batteryLevel":92,"latitude":12.9716,"longitude":77.5946,"altitude":120}
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.source").value("DEVICE"));
+
         mockMvc.perform(get("/api/telemetry"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].droneId").value(droneId));
@@ -55,7 +57,7 @@ class MissionWorkflowIntegrationTest {
                         .content(objectMapper.writeValueAsString(new MissionRequestBody(
                                 droneId,
                                 "Workflow integration test",
-                                "Test destination"
+                                "Chennai"
                         ))))
                 .andExpect(status().isCreated())
                 .andReturn()
@@ -77,7 +79,12 @@ class MissionWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].signalType", hasItem("TAKEOFF")))
                 .andExpect(jsonPath("$[*].signalType", hasItem("TRAVEL")))
+                .andExpect(jsonPath("$[*].signalType", hasItem("DELIVERY")))
                 .andExpect(jsonPath("$[*].signalType", hasItem("RETURN_HOME")));
+
+        mockMvc.perform(get("/api/telemetry/drone/{droneId}", droneId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].source").value("SIMULATED_MISSION"));
     }
 
     private record MissionRequestBody(

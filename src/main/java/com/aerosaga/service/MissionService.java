@@ -16,7 +16,6 @@ import com.AeroSaga.entity.Mission;
 import com.AeroSaga.exception.ResourceNotFoundException;
 import com.AeroSaga.repository.DroneRepository;
 import com.AeroSaga.repository.MissionRepository;
-import com.AeroSaga.service.WorkflowSignalService;
 
 @Service
 public class MissionService {
@@ -52,6 +51,7 @@ public class MissionService {
 
     @Transactional
     public Mission createMission(MissionRequest request) {
+        DroneCityCoordinates.require(request.getDestination());
         Drone drone = droneRepository.findById(request.getDroneId())
                 .orElseThrow(() ->
                     new ResourceNotFoundException(
@@ -120,6 +120,11 @@ public class MissionService {
         long id = parseMissionId(missionId);
         Mission mission = getMissionById(id);
         mission.setStatus(status);
+
+        if ("RUNNING".equals(status)) {
+            mission.getDrone().setStatus("IN_FLIGHT");
+            droneRepository.save(mission.getDrone());
+        }
 
         if ("COMPLETED".equals(status) || "FAILED".equals(status)) {
             Drone drone = mission.getDrone();
