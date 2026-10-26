@@ -252,11 +252,7 @@ export default function App() {
             className={nav === label ? 'on' : ''}
             onClick={() => {
               setNav(label)
-              if (target === 'map-view') {
-                document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' })
-              } else {
-                document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' })
-              }
+              document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' })
             }}
           >
             <Icon size={20} />
