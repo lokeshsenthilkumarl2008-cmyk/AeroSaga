@@ -16,12 +16,15 @@ public class TelemetryService {
 
     private final TelemetryRepository telemetryRepository;
     private final DroneRepository droneRepository;
+    private final SafetyRuleEngine safetyRuleEngine;
 
     public TelemetryService(
             TelemetryRepository telemetryRepository,
-            DroneRepository droneRepository) {
+            DroneRepository droneRepository,
+            SafetyRuleEngine safetyRuleEngine) {
         this.telemetryRepository = telemetryRepository;
         this.droneRepository = droneRepository;
+        this.safetyRuleEngine = safetyRuleEngine;
     }
 
     public List<Telemetry> getAllTelemetry() {
@@ -39,9 +42,17 @@ public class TelemetryService {
 
     @Transactional
     public Telemetry recordTelemetry(Long droneId, TelemetryRequest request) {
-        return saveTelemetry(droneId, request, "DEVICE");
+        Telemetry saved = saveTelemetry(droneId, request, "DEVICE");
+
+        safetyRuleEngine.evaluateBattery(
+                droneId,
+                request.getBatteryLevel()
+        );
+
+        return saved;
     }
 
+    @Transactional
     public Telemetry recordMissionTelemetry(
             Long droneId,
             TelemetryRequest request) {
@@ -65,6 +76,7 @@ public class TelemetryService {
         telemetry.setLongitude(request.getLongitude());
         telemetry.setAltitude(request.getAltitude());
         telemetry.setSource(source);
+
         return telemetryRepository.save(telemetry);
     }
 }

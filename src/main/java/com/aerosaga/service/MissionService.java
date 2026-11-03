@@ -98,6 +98,39 @@ public class MissionService {
         return getMissionById(id);
     }
 
+    public void requestEmergency(Long id, String reason) {
+        Mission mission = getMissionById(id);
+
+        if (!"RUNNING".equalsIgnoreCase(mission.getStatus())) {
+            throw new IllegalStateException(
+                    "Emergency can only be requested for a running mission"
+            );
+        }
+
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Emergency reason is required"
+            );
+        }
+
+        WorkflowClient client = workflowClientProvider.getObject();
+
+        com.AeroSaga.DroneMissionWorkflow workflow =
+                client.newWorkflowStub(
+                        com.AeroSaga.DroneMissionWorkflow.class,
+                        "drone-mission-" + id
+                );
+
+        workflow.requestEmergency(reason);
+
+        recordWorkflowSignal(
+                id.toString(),
+                "EMERGENCY_REQUEST",
+                "REQUESTED",
+                reason
+        );
+    }
+
     @Transactional
     public void recordWorkflowSignal(
             String missionId,
@@ -126,7 +159,7 @@ public class MissionService {
             droneRepository.save(mission.getDrone());
         }
 
-        if ("COMPLETED".equals(status) || "FAILED".equals(status)) {
+        if ("COMPLETED".equals(status) || "FAILED".equals(status) || "EMERGENCY_RETURNED".equals(status)) {
             Drone drone = mission.getDrone();
             drone.setStatus("AVAILABLE");
             droneRepository.save(drone);

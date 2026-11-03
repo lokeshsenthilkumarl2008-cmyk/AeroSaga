@@ -130,6 +130,42 @@ public class DroneMissionActivitiesImpl implements DroneMissionActivities {
     }
 
     @Override
+    public String emergencyReturnHome(String missionId, String reason) {
+        Mission mission = getMission(missionId);
+        Drone drone = mission.getDrone();
+
+        DroneCityCoordinates home = DroneCityCoordinates.require(
+                drone.getLocation()
+        );
+        DroneCityCoordinates destination = DroneCityCoordinates.require(
+                mission.getDestination()
+        );
+
+        recordSignal(
+                missionId,
+                "EMERGENCY_RETURN",
+                "IN_PROGRESS",
+                "Emergency return initiated: " + reason
+        );
+
+        recordFlightPath(drone, destination, home);
+
+        missionService.updateWorkflowStatus(
+                missionId,
+                "EMERGENCY_RETURNED"
+        );
+
+        recordSignal(
+                missionId,
+                "EMERGENCY_RETURN",
+                "COMPLETED",
+                "Emergency return completed. Reason: " + reason
+        );
+
+        return "EMERGENCY_RETURN_SUCCESS";
+    }
+
+    @Override
     public void failMission(String missionId) {
         missionService.updateWorkflowStatus(missionId, "FAILED");
         recordSignal(missionId, "MISSION", "FAILED", "Mission workflow failed");

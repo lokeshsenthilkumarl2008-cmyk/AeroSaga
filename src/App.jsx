@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { House, Target, Plane, Globe, ChartColumn, Settings } from 'lucide-react'
+import { House, Target, Plane, Globe, ChartColumn,ShieldAlert, Settings } from 'lucide-react'
 import GlobeView from './components/GlobeView'
 import MissionDag from './components/MissionDag'
+import SentinelDashboard from './components/sentinel/SentinelDashboard'
 import { CITIES, DRONES } from './data/drones'
 import {
   createDrone,
@@ -18,6 +19,7 @@ const NAV = [
   ['Drones', Plane, 'drone-roster'],
   // ['Map View', Globe, 'map-view'],
   ['Analytics', ChartColumn, 'backend-overview'],
+  ['Sentinel', ShieldAlert, 'sentinel-view'],
   // ['Settings', Settings, 'backend-overview'],
 ]
 
@@ -157,7 +159,7 @@ export default function App() {
         (item) => String(item.drone?.id) === String(drone.id) &&
           ['PENDING', 'RUNNING', 'IN_PROGRESS'].includes(item.status?.toUpperCase()),
       )
-
+      
       return {
         ...sample,
         id: String(drone.id),
@@ -234,6 +236,13 @@ export default function App() {
       }))
     })
   }
+  if (nav === 'Sentinel') {
+  return (
+    <SentinelDashboard
+      onBack={() => setNav('Dashboard')}
+    />
+  )
+}
 
   return (
     <div className="app">
@@ -251,9 +260,14 @@ export default function App() {
             key={label}
             className={nav === label ? 'on' : ''}
             onClick={() => {
-              setNav(label)
-              document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' })
-            }}
+  setNav(label)
+
+  if (label !== 'Sentinel') {
+    document.getElementById(target)?.scrollIntoView({
+      behavior: 'smooth',
+    })
+  }
+}}
           >
             <Icon size={20} />
             {label}

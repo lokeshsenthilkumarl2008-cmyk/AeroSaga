@@ -37,7 +37,7 @@ function place(d, tSec) {
     lon: o.city.lon + (o.r * Math.cos(th)) / Math.cos((o.city.lat * Math.PI) / 180),
     heading: moving ? Math.round(heading) : d.heading,
     speed: moving ? d.speed : 0,
-    battery: moving ? Math.max(5, d.battery - 0.02 * tSec) : d.battery,
+    battery: moving ? Math.max(5, d.battery - 0.00002 * tSec) : d.battery,
     dest: [o.city.lat, o.city.lon], // orbit ka center
   }
 }
