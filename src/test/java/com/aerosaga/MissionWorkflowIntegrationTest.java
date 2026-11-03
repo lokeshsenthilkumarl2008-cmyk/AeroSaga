@@ -50,8 +50,12 @@ class MissionWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.source").value("DEVICE"));
 
         mockMvc.perform(get("/api/telemetry"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/telemetry/drone/{droneId}", droneId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].droneId").value(droneId));
+                .andExpect(jsonPath("$[0].droneId").value(droneId))
+                .andExpect(jsonPath("$[0].source").value("DEVICE"));
 
         mockMvc.perform(
                         post("/api/telemetry/drone/{droneId}", droneId)
@@ -112,6 +116,47 @@ class MissionWorkflowIntegrationTest {
         mockMvc.perform(get("/api/telemetry/drone/{droneId}", droneId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].source").value("SIMULATED_MISSION"));
+
+        String emergencyMissionResponse = mockMvc.perform(post("/api/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new MissionRequestBody(
+                                droneId,
+                                "Emergency return integration test",
+                                "Chennai"
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long emergencyMissionId =
+                objectMapper.readTree(emergencyMissionResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/missions/{id}/execute", emergencyMissionId))
+                .andExpect(status().isAccepted());
+
+        mockMvc.perform(post("/api/telemetry/drone/{droneId}", droneId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"batteryLevel":8,"latitude":12.9716,"longitude":77.5946,"altitude":120}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.droneId").value(droneId));
+
+        mockMvc.perform(get("/api/sentinel/events/mission/{missionId}", emergencyMissionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].eventType", hasItem("EMERGENCY_RETURN")))
+                .andExpect(jsonPath("$[*].eventType", hasItem("CRITICAL_BATTERY")));
+
+        await()
+                .atMost(Duration.ofSeconds(30))
+                .untilAsserted(() -> mockMvc
+                        .perform(get("/api/missions/{id}", emergencyMissionId))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.status").value("EMERGENCY_RETURNED")));
+
+        mockMvc.perform(get("/api/workflow-signals/drone/{droneId}", droneId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].signalType", hasItem("EMERGENCY_RETURN")));
     }
 
     private record MissionRequestBody(

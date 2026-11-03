@@ -9,7 +9,8 @@ import com.AeroSaga.entity.Mission;
 public interface MissionRepository extends JpaRepository<Mission, Long> {
 
     List<Mission> findByStatus(String status);
-     Optional<Mission> findFirstByDrone_IdAndStatusIgnoreCaseOrderByIdDesc(
+
+    Optional<Mission> findFirstByDrone_IdAndStatusIgnoreCaseOrderByIdDesc(
             Long droneId, String status
     );
 }
