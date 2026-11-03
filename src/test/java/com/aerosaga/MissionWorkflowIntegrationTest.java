@@ -4,6 +4,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +52,32 @@ class MissionWorkflowIntegrationTest {
         mockMvc.perform(get("/api/telemetry"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].droneId").value(droneId));
+
+        mockMvc.perform(
+                        post("/api/telemetry/drone/{droneId}", droneId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"batteryLevel":15,"latitude":12.9716,"longitude":77.5946,"altitude":120}
+                                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.droneId").value(droneId));
+        long alertId = objectMapper.readTree(
+                mockMvc.perform(get("/api/emergency-alerts"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString()
+        ).get(0).get("id").asLong();
+        mockMvc.perform(get("/api/emergency-alerts/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].alertType").value("LOW_BATTERY"))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
+        mockMvc.perform(put("/api/emergency-alerts/{alertId}/resolve", alertId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"));
+        mockMvc.perform(get("/api/emergency-alerts/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
 
         String missionResponse = mockMvc.perform(post("/api/missions")
                         .contentType(MediaType.APPLICATION_JSON)

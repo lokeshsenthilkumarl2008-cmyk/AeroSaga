@@ -1,11 +1,17 @@
+
 package com.AeroSaga.entity;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -17,16 +23,31 @@ public class Telemetry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long droneId;
     private Double batteryLevel;
+
     private Double latitude;
+
     private Double longitude;
+
     private Double altitude;
+
+    private Double speed;
+
+    private Integer signalStrength;
+
     private String source;
+
     private LocalDateTime recordedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "drone_id")
+    private Drone drone;
+
+    public Telemetry() {
+    }
+
     @PrePersist
-    void setRecordedAtIfMissing() {
+    public void setRecordedAtIfMissing() {
         if (recordedAt == null) {
             recordedAt = LocalDateTime.now();
         }
@@ -34,14 +55,6 @@ public class Telemetry {
 
     public Long getId() {
         return id;
-    }
-
-    public Long getDroneId() {
-        return droneId;
-    }
-
-    public void setDroneId(Long droneId) {
-        this.droneId = droneId;
     }
 
     public Double getBatteryLevel() {
@@ -76,6 +89,22 @@ public class Telemetry {
         this.altitude = altitude;
     }
 
+    public Double getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(Double speed) {
+        this.speed = speed;
+    }
+
+    public Integer getSignalStrength() {
+        return signalStrength;
+    }
+
+    public void setSignalStrength(Integer signalStrength) {
+        this.signalStrength = signalStrength;
+    }
+
     public String getSource() {
         return source;
     }
@@ -90,5 +119,18 @@ public class Telemetry {
 
     public void setRecordedAt(LocalDateTime recordedAt) {
         this.recordedAt = recordedAt;
+    }
+
+    @JsonIgnore
+    public Drone getDrone() {
+        return drone;
+    }
+
+    public void setDrone(Drone drone) {
+        this.drone = drone;
+    }
+
+    public Long getDroneId() {
+        return drone == null ? null : drone.getId();
     }
 }

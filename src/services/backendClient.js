@@ -76,11 +76,12 @@ export function postTelemetry(droneId, telemetry) {
 }
 
 export async function getSentinelOverview() {
-  const [drones, telemetry, safetyEvents, missions, workflowSignals] =
+  const [drones, telemetry, safetyEvents, emergencyAlerts, missions, workflowSignals] =
     await Promise.all([
       getJson('/api/drones'),
       getJson('/api/telemetry'),
       getJson('/api/sentinel/events'),
+      getJson('/api/emergency-alerts'),
       getJson('/api/missions'),
       getJson('/api/workflow-signals'),
     ])
@@ -89,15 +90,27 @@ export async function getSentinelOverview() {
     !Array.isArray(drones) ||
     !Array.isArray(telemetry) ||
     !Array.isArray(safetyEvents) ||
+    !Array.isArray(emergencyAlerts) ||
     !Array.isArray(missions) ||
     !Array.isArray(workflowSignals)
   ) {
     throw new Error('Backend returned an invalid Sentinel API response')
   }
 
-  return { drones, telemetry, safetyEvents, missions, workflowSignals }
+  return {
+    drones,
+    telemetry,
+    safetyEvents,
+    emergencyAlerts,
+    missions,
+    workflowSignals,
+  }
 }
 
 export function requestMissionEmergency(missionId, reason) {
   return sendJson(`/api/missions/${missionId}/emergency`, 'POST', { reason })
+}
+
+export function resolveEmergencyAlert(alertId) {
+  return sendJson(`/api/emergency-alerts/${alertId}/resolve`, 'PUT')
 }

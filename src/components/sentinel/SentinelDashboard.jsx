@@ -16,6 +16,7 @@ import {
 import {
   executeMission,
   getSentinelOverview,
+  resolveEmergencyAlert,
   requestMissionEmergency,
 } from '../../services/backendClient'
 import './SentinelDashboard.css'
@@ -95,6 +96,7 @@ export default function SentinelDashboard({ onBack }) {
     drones: [],
     telemetry: [],
     safetyEvents: [],
+    emergencyAlerts: [],
     missions: [],
     workflowSignals: [],
     error: '',
@@ -166,12 +168,13 @@ export default function SentinelDashboard({ onBack }) {
 
   const eventsByDrone = useMemo(() => {
     const counts = new Map()
-    for (const event of safetyEvents) {
+    for (const event of data.emergencyAlerts) {
+      if (event.status?.toUpperCase() !== 'ACTIVE') continue
       const key = String(event.droneId)
       counts.set(key, (counts.get(key) || 0) + 1)
     }
     return counts
-  }, [safetyEvents])
+  }, [data.emergencyAlerts])
 
   const cityStats = useMemo(() => CITIES.map((city) => {
     const cityDrones = drones.filter(
@@ -212,8 +215,8 @@ export default function SentinelDashboard({ onBack }) {
     return latest
   }, [data.workflowSignals])
 
-  const runMissionAction = async (missionId, action) => {
-    setActionInProgress(String(missionId))
+  const runBackendAction = async (actionId, action) => {
+    setActionInProgress(String(actionId))
     setActionError('')
     try {
       await action()
@@ -228,6 +231,9 @@ export default function SentinelDashboard({ onBack }) {
   const highRiskEvents = safetyEvents.filter(
     (event) => eventRisk(event.severity) === 'HIGH',
   ).length
+  const activeEmergencyAlerts = data.emergencyAlerts.filter(
+    (alert) => alert.status?.toUpperCase() === 'ACTIVE',
+  )
 
   return (
     <main className="sentinel-page">
@@ -280,7 +286,7 @@ export default function SentinelDashboard({ onBack }) {
         <Metric icon={Activity} label="Active / Flying" value={fleetStats.active} detail="Current backend status" />
         <Metric icon={CheckCircle} label="Idle / Available" value={fleetStats.idle} detail="Current backend status" />
         <Metric icon={CircleAlert} label="Offline drones" value={fleetStats.offline} detail="Current backend status" />
-        <Metric icon={ShieldAlert} label="Safety events" value={safetyEvents.length} detail={`${highRiskEvents} critical / high severity`} />
+        <Metric icon={ShieldAlert} label="Active alerts" value={activeEmergencyAlerts.length} detail={`${highRiskEvents} critical / high safety events`} />
       </section>
 
       <section className="sentinel-section">
@@ -308,7 +314,7 @@ export default function SentinelDashboard({ onBack }) {
               </div>
               <div className="sentinel-city-details">
                 <span>Offline: {city.offline}</span>
-                <span>Safety events: {city.alerts}</span>
+                <span>Active alerts: {city.alerts}</span>
               </div>
             </button>
           ))}
@@ -364,6 +370,58 @@ export default function SentinelDashboard({ onBack }) {
               </table>
             </div>
           </div>
+        )}
+      </section>
+
+      <section className="sentinel-section">
+        <div className="sentinel-section-heading">
+          <div>
+            <h2><CircleAlert size={19} />Emergency alerts</h2>
+            <p>Persisted backend alerts. Resolve an alert after the issue is addressed.</p>
+          </div>
+          <span className="sentinel-demo-label">
+            {activeEmergencyAlerts.length} ACTIVE
+          </span>
+        </div>
+
+        {data.emergencyAlerts.length ? data.emergencyAlerts.slice(0, 20).map((alert) => {
+          const drone = drones.find((item) => String(item.id) === String(alert.droneId))
+          const busy = actionInProgress === `alert-${alert.id}`
+          const severity = alert.alertType?.toUpperCase().includes('CRITICAL')
+            ? 'HIGH'
+            : 'MEDIUM'
+          return (
+            <article className="sentinel-alert" key={alert.id}>
+              <CircleAlert size={20} />
+              <div>
+                <strong>
+                  {alert.alertType} · {drone?.name || `Drone #${alert.droneId}`}
+                </strong>
+                <p>
+                  {alert.message} · {alert.status} · {formatTime(alert.createdAt)}
+                </p>
+              </div>
+              <span className={`sentinel-risk ${riskClass[severity]}`}>{severity}</span>
+              {alert.status?.toUpperCase() === 'ACTIVE' && (
+                <button
+                  className="sentinel-action"
+                  disabled={Boolean(actionInProgress) || data.status !== 'online'}
+                  onClick={() => void runBackendAction(
+                    `alert-${alert.id}`,
+                    () => resolveEmergencyAlert(alert.id),
+                  )}
+                >
+                  {busy ? 'Resolving…' : 'Resolve'}
+                </button>
+              )}
+            </article>
+          )
+        }) : (
+          <p className="sentinel-empty">
+            {data.status === 'loading'
+              ? 'Loading emergency alerts…'
+              : 'No emergency alerts have been recorded.'}
+          </p>
         )}
       </section>
 
@@ -441,7 +499,7 @@ export default function SentinelDashboard({ onBack }) {
                           <button
                             className="sentinel-action"
                             disabled={Boolean(actionInProgress) || data.status !== 'online'}
-                            onClick={() => void runMissionAction(
+                            onClick={() => void runBackendAction(
                               mission.id,
                               () => executeMission(mission.id),
                             )}
@@ -453,7 +511,7 @@ export default function SentinelDashboard({ onBack }) {
                           <button
                             className="sentinel-action emergency"
                             disabled={Boolean(actionInProgress) || data.status !== 'online'}
-                            onClick={() => void runMissionAction(
+                            onClick={() => void runBackendAction(
                               mission.id,
                               () => requestMissionEmergency(
                                 mission.id,

@@ -1,9 +1,13 @@
+
 package com.AeroSaga.dto;
+
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
 public class TelemetryRequest {
+
+    private Long droneId;
 
     @NotNull
     @DecimalMin("0.0")
@@ -23,6 +27,21 @@ public class TelemetryRequest {
     @NotNull
     @DecimalMin("0.0")
     private Double altitude;
+
+    @DecimalMin("0.0")
+    private Double speed;
+
+    @DecimalMin("0")
+    @DecimalMax("100")
+    private Integer signalStrength;
+
+    public Long getDroneId() {
+        return droneId;
+    }
+
+    public void setDroneId(Long droneId) {
+        this.droneId = droneId;
+    }
 
     public Double getBatteryLevel() {
         return batteryLevel;
@@ -54,5 +73,21 @@ public class TelemetryRequest {
 
     public void setAltitude(Double altitude) {
         this.altitude = altitude;
+    }
+
+    public Double getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(Double speed) {
+        this.speed = speed;
+    }
+
+    public Integer getSignalStrength() {
+        return signalStrength;
+    }
+
+    public void setSignalStrength(Integer signalStrength) {
+        this.signalStrength = signalStrength;
     }
 }

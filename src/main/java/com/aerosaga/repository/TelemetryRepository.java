@@ -8,5 +8,6 @@ import com.AeroSaga.entity.Telemetry;
 
 public interface TelemetryRepository extends JpaRepository<Telemetry, Long> {
 
-    List<Telemetry> findByDroneIdOrderByRecordedAtDesc(Long droneId);
+    List<Telemetry> findByDrone_IdOrderByRecordedAtDesc(Long droneId);
+
 }
