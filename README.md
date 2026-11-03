@@ -84,9 +84,9 @@ $env:DB_PASSWORD = "<your PostgreSQL password>"
 mvnw.cmd spring-boot:run
 ```
 
-The dashboard reads drone, mission, telemetry, and workflow-signal records from the backend. It can register drones, create and start missions, and show persisted workflow progress. By default, Temporal runs in a local in-memory development environment; its execution history is not durable across backend restarts. For durable workflows, run a Temporal server and set `SPRING_PROFILES_ACTIVE=external-temporal` and `TEMPORAL_TARGET=localhost:7233`. Map positions, speed, and heading use simulated values until a telemetry producer posts real readings.
+The dashboard reads drone, mission, telemetry, safety-event, and workflow-signal records from the backend. Sentinel refreshes these records every five seconds, groups registered drones by city, displays persisted safety events and the latest telemetry, and exposes mission start and emergency-return actions. The main dashboard can register drones, create and start missions, and show persisted workflow progress. By default, Temporal runs in a local in-memory development environment; its execution history is not durable across backend restarts. For durable workflows, run a Temporal server and set `SPRING_PROFILES_ACTIVE=external-temporal` and `TEMPORAL_TARGET=localhost:7233`. Map positions, speed, and heading use simulated values until a telemetry producer posts real readings.
 
-Telemetry producers can submit readings with `POST /api/telemetry/drone/{droneId}` using `batteryLevel`, `latitude`, `longitude`, and `altitude`. Mission workflows are started with `POST /api/missions/{id}/execute`; workflow activity records are available from `/api/workflow-signals`.
+Telemetry producers can submit readings with `POST /api/telemetry/drone/{droneId}` using `batteryLevel`, `latitude`, `longitude`, and `altitude`. Safety events are available from `GET /api/sentinel/events`. Mission workflows are started with `POST /api/missions/{id}/execute`; a running mission can receive an emergency return request at `POST /api/missions/{id}/emergency` with a JSON body such as `{"reason":"Low battery"}`. Workflow activity records are available from `/api/workflow-signals`.
 
 ## Project Status
 

@@ -23,6 +23,91 @@
   gap: 20px;
 }
 
+.sentinel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sentinel-connection,
+.sentinel-refresh,
+.sentinel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #31425a;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #142238;
+  color: #dce7f7;
+  font-size: 11px;
+}
+
+.sentinel-connection {
+  color: #69dfb5;
+  letter-spacing: 0.6px;
+}
+
+.sentinel-connection.offline {
+  border-color: #70404a;
+  color: #ff9aa8;
+}
+
+.sentinel-connection.loading {
+  color: #e9c36b;
+}
+
+.sentinel-refresh,
+.sentinel-action {
+  cursor: pointer;
+}
+
+.sentinel-refresh:disabled,
+.sentinel-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.sentinel-action {
+  white-space: nowrap;
+}
+
+.sentinel-action.emergency {
+  border-color: #70404a;
+  background: #3a202a;
+  color: #ff9aa8;
+}
+
+.sentinel-api-error {
+  margin-bottom: 18px;
+  border: 1px solid #70404a;
+  border-radius: 10px;
+  padding: 14px;
+  background: #281a24;
+  color: #ffb1ba;
+}
+
+.sentinel-api-error p {
+  margin: 6px 0 0;
+  color: #d9aab1;
+}
+
+.sentinel-api-error button {
+  margin-top: 10px;
+  border: 1px solid #70404a;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #3a202a;
+  color: #ffe2e5;
+  cursor: pointer;
+}
+
+.sentinel-empty {
+  color: #93a3ba;
+  font-size: 13px;
+}
+
 .sentinel-back {
   display: flex;
   align-items: center;
@@ -67,7 +152,7 @@
 
 .sentinel-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 15px;
   margin-bottom: 22px;
 }
@@ -174,6 +259,11 @@
   color: #ff8b9b;
 }
 
+.sentinel-unknown {
+  background: #263449;
+  color: #a9bad0;
+}
+
 .sentinel-alert {
   gap: 14px;
   padding: 15px 0;
@@ -221,7 +311,7 @@
 
 @media (max-width: 900px) {
   .sentinel-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -233,6 +323,10 @@
   .sentinel-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .sentinel-header-actions {
+    flex-wrap: wrap;
   }
 
   .sentinel-metrics {

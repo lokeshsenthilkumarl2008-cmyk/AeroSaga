@@ -12,15 +12,23 @@ async function sendJson(path, method, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  const responseBody = await response.text()
   if (!response.ok) {
-    const payload = await response.json().catch(() => null)
+    let payload
+    try {
+      payload = responseBody ? JSON.parse(responseBody) : null
+    } catch {
+      payload = responseBody
+    }
     const message =
       payload?.message ||
-      Object.values(payload || {}).find((value) => typeof value === 'string') ||
+      (typeof payload === 'string'
+        ? payload
+        : Object.values(payload || {}).find((value) => typeof value === 'string')) ||
       `Backend request failed (${response.status})`
     throw new Error(message)
   }
-  return response.status === 204 ? null : response.json()
+  return responseBody ? JSON.parse(responseBody) : null
 }
 
 export async function getBackendOverview() {
@@ -65,4 +73,31 @@ export function deleteMission(missionId) {
 
 export function postTelemetry(droneId, telemetry) {
   return sendJson(`/api/telemetry/drone/${droneId}`, 'POST', telemetry)
+}
+
+export async function getSentinelOverview() {
+  const [drones, telemetry, safetyEvents, missions, workflowSignals] =
+    await Promise.all([
+      getJson('/api/drones'),
+      getJson('/api/telemetry'),
+      getJson('/api/sentinel/events'),
+      getJson('/api/missions'),
+      getJson('/api/workflow-signals'),
+    ])
+
+  if (
+    !Array.isArray(drones) ||
+    !Array.isArray(telemetry) ||
+    !Array.isArray(safetyEvents) ||
+    !Array.isArray(missions) ||
+    !Array.isArray(workflowSignals)
+  ) {
+    throw new Error('Backend returned an invalid Sentinel API response')
+  }
+
+  return { drones, telemetry, safetyEvents, missions, workflowSignals }
+}
+
+export function requestMissionEmergency(missionId, reason) {
+  return sendJson(`/api/missions/${missionId}/emergency`, 'POST', { reason })
 }

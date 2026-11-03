@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 
+import com.AeroSaga.dto.EmergencyRequest;
 import com.AeroSaga.dto.MissionRequest;
 import com.AeroSaga.entity.Mission;
 import com.AeroSaga.service.MissionService;
@@ -54,6 +55,14 @@ public class MissionController {
                     workflowAlreadyStarted
             );
         }
+    }
+
+    @PostMapping("/{id}/emergency")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void requestEmergency(
+            @PathVariable Long id,
+            @Valid @RequestBody EmergencyRequest request) {
+        missionService.requestEmergency(id, request.reason());
     }
 
     @PostMapping
