@@ -14,6 +14,8 @@ public class Drone {
     @Column(nullable = false)
     private String name;
 
+    private String location;
+
     public void setName(String name) {
 		this.name = name;
 	}
@@ -72,6 +74,14 @@ public class Drone {
 
     public String getName() {
         return name;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public double getBatteryLevel() {
